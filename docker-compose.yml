@@ -4,3 +4,18 @@ services:
     build: .
     ports:
      - "7080:7080"
+
+
+  mongodb:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB__DATABASE: mock-oauth2
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb:/data/db
+
+volumes:
+  mongodb:
