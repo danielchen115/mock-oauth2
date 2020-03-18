@@ -23,7 +23,7 @@ func main() {
 
     // example usage
     collection := client.Database("mock-oauth2").Collection("users")
-    ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+    //ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
     res, err := collection.InsertOne(ctx, bson.M{"name": "test", "token": "test_hash"})
     if err != nil {
         log.Fatal(err)
