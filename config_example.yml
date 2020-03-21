@@ -1,0 +1,9 @@
+fields:
+  - name: email
+    required: true
+  - name: given_name
+    required: true
+  - name: family_name
+    required: true
+  - name: phone_number
+    required: false
