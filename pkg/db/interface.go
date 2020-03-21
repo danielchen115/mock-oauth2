@@ -1,5 +1,10 @@
 package db
 
-type Collection interface {
-	Insert(data map[string]interface{}) uint64
+import (
+	"context"
+)
+
+type UserCollection interface {
+	Insert(ctx context.Context, user *User) error
+	InsertMany(ctx context.Context, users []*User) error
 }
