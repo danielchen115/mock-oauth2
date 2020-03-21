@@ -8,22 +8,18 @@ import (
 	"log"
 )
 
+type Fields map[string]interface{}
+
 type userCollection struct {
 	client     *mongo.Client
 	collection *mongo.Collection
 }
 
-type Field struct {
-	Name     string      `json:"name"`
-	Value    interface{} `json:"value"`
-	Required bool        `json:"required"`
-}
-
 type User struct {
-	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Fields       []Field            `json:"fields"`
-	AccessToken  string             `json:"accessToken" bson:"accessToken,omitempty"`
-	RefreshToken string             `json:"refreshToken" bson:"refreshToken,omitempty"`
+	ID           primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
+	Fields       Fields `json:"fields"`
+	AccessToken  string                 `json:"accessToken" bson:"accessToken,omitempty"`
+	RefreshToken string                 `json:"refreshToken" bson:"refreshToken,omitempty"`
 }
 
 func NewUserCollection(URI string, database string) UserCollection {
