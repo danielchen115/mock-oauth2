@@ -1,29 +1,36 @@
 package oauth
 
 import (
-	"gopkg.in/yaml.v2"
-	"os"
+	"fmt"
+	"github.com/spf13/viper"
 )
 
 type FieldSpec struct {
-	Name     string      `yaml:"name"`
-	Required bool        `yaml:"required"`
+	Name     string      `mapstructure:"name"`
+	Required bool        `mapstructure:"required"`
 }
 
 type Config struct {
-	Fields []FieldSpec `yaml:"fields"`
+	Import ImportConfig
 }
 
-func LoadConfig(file string) (*Config, error) {
-	f, err := os.Open(file)
+type ImportConfig struct {
+	Fields []FieldSpec `mapstructure:"fields"`
+}
+
+func LoadConfig(file string, dir string) (*Config, error) {
+	viper.SetConfigFile(file)
+	viper.AddConfigPath(dir)
+	err := viper.ReadInConfig()
 	if err != nil {
+		fmt.Printf("config not read: %s", err)
 		return nil, err
 	}
-	decoder := yaml.NewDecoder(f)
 	var c Config
-	err = decoder.Decode(&c)
+	err = viper.Unmarshal(&c)
 	if err != nil {
+		fmt.Printf("config not loaded: %s", err)
 		return nil, err
 	}
-	return &c, nil
+	return &c, err
 }

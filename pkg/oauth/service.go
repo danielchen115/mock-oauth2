@@ -25,7 +25,7 @@ func (s service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
 	Outer:
 	for _, fields := range fieldsArr {
 		user := User{Fields: make(Fields)}
-		for _, spec := range s.config.Fields {
+		for _, spec := range s.config.Import.Fields {
 			value, ok := fields[spec.Name]
 			if !ok && spec.Required {
 				fmt.Printf("Required field \"%s\" not found, user not imported.\n", spec.Name)

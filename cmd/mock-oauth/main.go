@@ -16,7 +16,7 @@ func main() {
 		}
 		// TODO: put hardcoded strings in env file
 		userCollection := oauth.NewUserCollection("mongodb://root:secret@localhost:27017", "mock-oauth2")
-		config, err := oauth.LoadConfig("config_example.yml")
+		config, err := oauth.LoadConfig("config_example.yml", ".")
 		if err != nil {
 			return err
 		}
