@@ -3,7 +3,7 @@ services:
   web:
     build: .
     ports:
-     - "7080:7080"
+     - "8090:8090"
     depends_on:
       - "mongodb"
 

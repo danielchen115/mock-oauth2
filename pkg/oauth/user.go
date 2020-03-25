@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -11,6 +12,7 @@ import (
 type UserCollection interface {
 	Insert(ctx context.Context, user *User) error
 	InsertMany(ctx context.Context, users []*User) error
+	Find(ctx context.Context, id primitive.ObjectID) (*User, error)
 }
 
 type Fields map[string]interface{}
@@ -58,4 +60,13 @@ func (uc userCollection) InsertMany(ctx context.Context, users []*User) error {
 		users[i].ID = id.(primitive.ObjectID)
 	}
 	return nil
+}
+
+func (uc userCollection) Find(ctx context.Context, id primitive.ObjectID) (*User, error) {
+	var user User
+	err := uc.collection.FindOne(ctx, bson.D{{"_id", id}}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
