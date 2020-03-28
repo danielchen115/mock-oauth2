@@ -7,19 +7,20 @@ import (
 	"os"
 )
 
-const addr = "localhost:8090"
-
 func main() {
 	err := func() error {
 		// TODO: put hardcoded strings in env file
-		userCollection := oauth.NewUserCollection("mongodb://root:secret@localhost:27017", "mock-oauth2")
 		config, err := oauth.LoadConfig("config_example.yml", ".")
 		if err != nil {
 			return err
 		}
+		dbConfig := config.Database
+		dbURI := fmt.Sprintf("mongodb://%s:%s@%s:%d", dbConfig.Username, dbConfig.Password, dbConfig.Host, dbConfig.Port)
+		userCollection := oauth.NewUserCollection(dbURI, dbConfig.Database)
+		serverURI := fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port)
 		svc := oauth.NewService(config, userCollection)
-		s := server.New(svc, addr)
-		fmt.Printf("listening on %s...\n", addr)
+		s := server.New(svc, serverURI)
+		fmt.Printf("listening on %s...\n", serverURI)
 		return s.ListenAndServe()
 	}()
 	if err != nil {

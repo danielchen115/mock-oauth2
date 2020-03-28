@@ -11,11 +11,32 @@ type FieldSpec struct {
 }
 
 type Config struct {
+	Server ServerConfig
+	Database DatabaseConfig
 	Import ImportConfig
+	Token TokenConfig
+}
+
+type ServerConfig struct {
+	Host string
+	Port uint64
+}
+
+type DatabaseConfig struct {
+	Host string
+	Port uint64
+	Database string
+	Username string
+	Password string
 }
 
 type ImportConfig struct {
 	Fields []FieldSpec `mapstructure:"fields"`
+}
+
+type TokenConfig struct {
+	AccessTokenDuration uint64
+	GrantType string
 }
 
 func LoadConfig(file string, dir string) (*Config, error) {

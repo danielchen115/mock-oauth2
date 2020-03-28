@@ -1,3 +1,12 @@
+server:
+  host: localhost
+  port: 8090
+database:
+  host: localhost
+  port: 27017
+  database: mock-oauth2
+  username: root
+  password: secret
 import:
   fields:
     - name: email
@@ -8,3 +17,6 @@ import:
       required: true
     - name: phone_number
       required: false
+token:
+  accessTokenDuration: 3600
+  grantType: authorization_code
