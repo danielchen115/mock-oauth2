@@ -23,10 +23,11 @@ type userCollection struct {
 }
 
 type User struct {
-	ID           primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
-	Fields       Fields `json:"fields"`
-	AccessToken  string                 `json:"accessToken" bson:"accessToken,omitempty"`
-	RefreshToken string                 `json:"refreshToken" bson:"refreshToken,omitempty"`
+	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Fields       Fields             `json:"fields"`
+	Scope        []string           `json:"scope" bson:"scope,omitempty"`
+	AccessToken  string             `json:"accessToken" bson:"accessToken,omitempty"`
+	RefreshToken string             `json:"refreshToken" bson:"refreshToken,omitempty"`
 }
 
 func NewUserCollection(URI string, database string) UserCollection {

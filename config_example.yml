@@ -18,5 +18,6 @@ import:
     - name: phone_number
       required: false
 token:
+  clientID: test_client_id
   accessTokenDuration: 3600
   grantType: authorization_code

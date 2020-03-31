@@ -35,6 +35,7 @@ type ImportConfig struct {
 }
 
 type TokenConfig struct {
+	ClientID string
 	AccessTokenDuration uint64
 	GrantType string
 }

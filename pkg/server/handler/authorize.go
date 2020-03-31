@@ -8,6 +8,7 @@ import (
 func Authorize(service oauth.Service) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		redirectURI := req.URL.Query().Get("redirect_uri")
+		s
 		uri, err := service.Authorize(req.Context(), redirectURI)
 		if err != nil {
 			panic(err)
