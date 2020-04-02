@@ -9,11 +9,13 @@ import (
 type Service interface {
 	ImportUsers(ctx context.Context, fields []Fields) error
 	Authorize(ctx context.Context, redirectURI string) (uri string, err error)
+	SetCurrentUser(ctx context.Context, id string) (user *User, err error)
 }
 
 type service struct {
 	config *Config
 	userCollection UserCollection
+	currentUserID string
 }
 
 func NewService(config *Config, userCollection UserCollection) Service {
@@ -39,10 +41,19 @@ func (s service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
 }
 
 func (s service) Authorize(ctx context.Context, redirectURI string) (uri string, err error) {
-	id, _ := primitive.ObjectIDFromHex("5e76824e6a9946d454b731c5")
+	id, _ := primitive.ObjectIDFromHex(s.currentUserID)
 	user, err := s.userCollection.Find(ctx, id)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%s?code=%s", redirectURI, user.ID.Hex()), nil
+}
+
+func (s service) SetCurrentUser(ctx context.Context, id string) (user *User, err error) {
+	s.currentUserID = id
+	hexID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	return s.userCollection.Find(ctx, hexID)
 }

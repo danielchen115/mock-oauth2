@@ -14,14 +14,14 @@ func main() {
 		if len(os.Args) < 2 {
 			return errors.New("expects 1 argument, got none")
 		}
-		// TODO: put hardcoded strings in env file
-		userCollection := oauth.NewUserCollection("mongodb://root:secret@localhost:27017", "mock-oauth2")
 		config, err := oauth.LoadConfig("config_example.yml", ".")
 		if err != nil {
 			return err
 		}
-		service := oauth.NewService(config, userCollection)
-
+		dbConfig := config.Database
+		dbURI := fmt.Sprintf("mongodb://%s:%s@%s:%d", dbConfig.Username, dbConfig.Password, dbConfig.Host, dbConfig.Port)
+		userCollection := oauth.NewUserCollection(dbURI, dbConfig.Database)
+		svc := oauth.NewService(config, userCollection)
 		f, err := os.Open(os.Args[1])
 		if err != nil {
 			return err
@@ -32,7 +32,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		return service.ImportUsers(context.TODO(), users)
+		return svc.ImportUsers(context.TODO(), users)
 	}()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

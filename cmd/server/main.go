@@ -9,7 +9,6 @@ import (
 
 func main() {
 	err := func() error {
-		// TODO: put hardcoded strings in env file
 		config, err := oauth.LoadConfig("config_example.yml", ".")
 		if err != nil {
 			return err
