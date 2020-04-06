@@ -3,7 +3,6 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Service interface {
@@ -41,19 +40,14 @@ func (s service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
 }
 
 func (s service) Authorize(ctx context.Context, redirectURI string) (uri string, err error) {
-	id, _ := primitive.ObjectIDFromHex(s.currentUserID)
-	user, err := s.userCollection.Find(ctx, id)
+	user, err := s.userCollection.Find(ctx, s.currentUserID)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s?code=%s", redirectURI, user.ID.Hex()), nil
+	return fmt.Sprintf("%s?code=%s", redirectURI, user.ID), nil
 }
 
 func (s service) SetCurrentUser(ctx context.Context, id string) (user *User, err error) {
 	s.currentUserID = id
-	hexID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-	return s.userCollection.Find(ctx, hexID)
+	return s.userCollection.Find(ctx, s.currentUserID)
 }
