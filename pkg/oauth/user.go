@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -11,7 +12,7 @@ import (
 type UserCollection interface {
 	Insert(ctx context.Context, user *User) error
 	InsertMany(ctx context.Context, users []*User) error
-	Find(ctx context.Context, id string) (*User, error)
+	Find(ctx context.Context, id primitive.ObjectID) (*User, error)
 }
 
 type Fields map[string]interface{}
@@ -22,7 +23,7 @@ type userCollection struct {
 }
 
 type User struct {
-	ID           string `json:"id" bson:"_id,omitempty"`
+	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Fields       Fields             `json:"fields"`
 	Scope        []string           `json:"scope" bson:"scope,omitempty"`
 	AccessToken  string             `json:"accessToken" bson:"accessToken,omitempty"`
@@ -43,7 +44,7 @@ func (uc userCollection) Insert(ctx context.Context, user *User) error {
 	if err != nil {
 		return err
 	}
-	user.ID = res.InsertedID.(string)
+	user.ID = res.InsertedID.(primitive.ObjectID)
 	return nil
 }
 
@@ -57,12 +58,12 @@ func (uc userCollection) InsertMany(ctx context.Context, users []*User) error {
 		return err
 	}
 	for i, id := range res.InsertedIDs {
-		users[i].ID = id.(string)
+		users[i].ID = id.(primitive.ObjectID)
 	}
 	return nil
 }
 
-func (uc userCollection) Find(ctx context.Context, id string) (*User, error) {
+func (uc userCollection) Find(ctx context.Context, id primitive.ObjectID) (*User, error) {
 	var user User
 	err := uc.collection.FindOne(ctx, bson.D{{"_id", id}}).Decode(&user)
 	if err != nil {
