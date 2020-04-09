@@ -36,8 +36,9 @@ type ImportConfig struct {
 
 type TokenConfig struct {
 	ClientID string
-	AccessTokenDuration uint64
+	AccessTokenDuration int
 	GrantType string
+	SigningSecret string
 }
 
 func LoadConfig(file string, dir string) (*Config, error) {

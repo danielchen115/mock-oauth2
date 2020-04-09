@@ -21,3 +21,4 @@ token:
   clientID: test_client_id
   accessTokenDuration: 3600
   grantType: authorization_code
+  signingSecret: 8bd938cc66047342e5914d13a73d14f566af7f75215bcdb3956f6c3ea904ac9f

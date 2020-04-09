@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-type AccessToken *jwt.Token
+type AccessToken = jwt.Token
 
-func NewAccessToken(config TokenConfig, user User) AccessToken {
+func NewAccessToken(config TokenConfig, user *User) *AccessToken {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["sub"] = user.ID.Hex()

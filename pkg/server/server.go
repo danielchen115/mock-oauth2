@@ -10,5 +10,6 @@ func New(svc oauth.Service, addr string) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/authorize", handler.Authorize(svc))
 	mux.Handle("/current-user", handler.CurrentUser(svc))
+	mux.Handle("/token", handler.Token(svc))
 	return &http.Server{Handler: mux, Addr: addr}
 }

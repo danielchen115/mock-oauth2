@@ -71,3 +71,10 @@ func (uc userCollection) Find(ctx context.Context, id primitive.ObjectID) (*User
 	}
 	return &user, nil
 }
+
+func (u User) AddAccessToken(config TokenConfig) (err error) {
+	t := NewAccessToken(config, &u)
+	u.AccessToken, err = t.SignedString(config.SigningSecret)
+	return err
+}
+
