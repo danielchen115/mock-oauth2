@@ -37,7 +37,6 @@ func Token(service oauth.Service) http.HandlerFunc {
 				AccessToken:  token,
 				TokenType:    "bearer",
 				ExpiresIn:    service.GetAccessTokenDuration(),
-
 			})
 		}(); err != nil {
 			status := http.StatusInternalServerError

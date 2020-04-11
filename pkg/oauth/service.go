@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -10,7 +11,7 @@ import (
 type Service interface {
 	ImportUsers(ctx context.Context, fields []Fields) error
 	Authorize(ctx context.Context, redirectURI string) (uri string, err error)
-	SetCurrentUser(ctx context.Context, id string) (user *User, err error)
+	SetCurrentUser(ctx context.Context, id primitive.ObjectID) (user *User, err error)
 	Token(ctx context.Context, params TokenParam) (string, error)
 	GetAccessTokenDuration() int
 }
@@ -25,14 +26,14 @@ type TokenParam struct {
 type service struct {
 	config *Config
 	userCollection UserCollection
-	currentUserID string
+	currentUserID primitive.ObjectID
 }
 
 func NewService(config *Config, userCollection UserCollection) Service {
-	return service{config: config, userCollection: userCollection}
+	return &service{config: config, userCollection: userCollection}
 }
 
-func (s service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
+func (s *service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
 	var users []*User
 	Outer:
 	for _, fields := range fieldsArr {
@@ -50,25 +51,22 @@ func (s service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
 	return s.userCollection.InsertMany(ctx, users)
 }
 
-func (s service) Authorize(ctx context.Context, redirectURI string) (uri string, err error) {
-	id, _ := primitive.ObjectIDFromHex(s.currentUserID)
-	user, err := s.userCollection.Find(ctx, id)
+func (s *service) Authorize(ctx context.Context, redirectURI string) (uri string, err error) {
+	id := s.currentUserID
+	_, err = s.userCollection.Find(ctx, id)
 	if err != nil {
-		return "", err
+		return "", errors.New("user not found")
 	}
-	return fmt.Sprintf("%s?code=%s", redirectURI, user.ID.Hex()), nil
+	code := base64.URLEncoding.EncodeToString([]byte(id.Hex()))
+	return fmt.Sprintf("%s?code=%s", redirectURI, code), nil
 }
 
-func (s service) SetCurrentUser(ctx context.Context, id string) (user *User, err error) {
+func (s *service) SetCurrentUser(ctx context.Context, id primitive.ObjectID) (user *User, err error) {
 	s.currentUserID = id
-	hexID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-	return s.userCollection.Find(ctx, hexID)
+	return s.userCollection.Find(ctx, id)
 }
 
-func (s service) Token(ctx context.Context, params TokenParam) (string, error) {
+func (s *service) Token(ctx context.Context, params TokenParam) (string, error) {
 	if params.GrantType != "authorization_code" {
 		return "", errors.New("unsupported grant type")
 	}
@@ -78,14 +76,11 @@ func (s service) Token(ctx context.Context, params TokenParam) (string, error) {
 	if params.ClientID != s.config.Token.ClientID {
 		return "", errors.New("unknown client ID")
 	}
-	if params.Code != s.currentUserID {
+	code, _ := base64.URLEncoding.DecodeString(params.Code)
+	if string(code) != s.currentUserID.Hex() {
 		return "", errors.New("authorization code invalid")
 	}
-	userID, err := primitive.ObjectIDFromHex(s.currentUserID)
-	if err != nil {
-		return "", err
-	}
-	user, err := s.userCollection.Find(ctx, userID)
+	user, err := s.userCollection.Find(ctx, s.currentUserID)
 	if err != nil {
 		return "", err
 	}
@@ -93,6 +88,6 @@ func (s service) Token(ctx context.Context, params TokenParam) (string, error) {
 	return user.AccessToken, err
 }
 
-func (s service) GetAccessTokenDuration() int {
+func (s *service) GetAccessTokenDuration() int {
 	return s.config.Token.AccessTokenDuration
 }
