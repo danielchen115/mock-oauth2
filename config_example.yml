@@ -18,7 +18,12 @@ import:
     - name: phone_number
       required: false
 token:
+  # mocked; the API would provide this when registering the app
   clientID: test_client_id
+  clientSecret: dGvRuTUDU0
+  # duration in seconds
   accessTokenDuration: 3600
+  refreshTokenDuration: 604800
+  # only authorization_code is currently supported
   grantType: authorization_code
   signingSecret: 8bd938cc66047342e5914d13a73d14f566af7f75215bcdb3956f6c3ea904ac9f

@@ -36,7 +36,9 @@ type ImportConfig struct {
 
 type TokenConfig struct {
 	ClientID string
+	ClientSecret string
 	AccessTokenDuration int
+	RefreshTokenDuration int
 	GrantType string
 	SigningSecret string
 }
