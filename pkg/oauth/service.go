@@ -12,7 +12,7 @@ type Service interface {
 	ImportUsers(ctx context.Context, fields []Fields) error
 	Authorize(ctx context.Context, redirectURI string) (uri string, err error)
 	SetCurrentUser(ctx context.Context, id primitive.ObjectID) (user *User, err error)
-	Token(ctx context.Context, params TokenParam) (string, error)
+	Tokens(ctx context.Context, params TokenParam) (at string, rt string, err error)
 	GetAccessTokenDuration() int
 }
 
@@ -66,26 +66,30 @@ func (s *service) SetCurrentUser(ctx context.Context, id primitive.ObjectID) (us
 	return s.userCollection.Find(ctx, id)
 }
 
-func (s *service) Token(ctx context.Context, params TokenParam) (string, error) {
+func (s *service) Tokens(ctx context.Context, params TokenParam) (at string, rt string, err error) {
 	if params.GrantType != "authorization_code" {
-		return "", errors.New("unsupported grant type")
+		return "", "", errors.New("unsupported grant type")
 	}
 	if params.RedirectURI == "" {
-		return "", errors.New("redirect URI not found")
+		return "", "", errors.New("redirect URI not found")
 	}
 	if params.ClientID != s.config.Token.ClientID {
-		return "", errors.New("unknown client ID")
+		return "", "", errors.New("unknown client ID")
 	}
 	code, _ := base64.URLEncoding.DecodeString(params.Code)
 	if string(code) != s.currentUserID.Hex() {
-		return "", errors.New("authorization code invalid")
+		return "", "", errors.New("authorization code invalid")
 	}
 	user, err := s.userCollection.Find(ctx, s.currentUserID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	err = user.AddAccessToken(s.config.Token)
-	return user.AccessToken, err
+	if err != nil {
+		return "", "", err
+	}
+	err = user.AddRefreshToken(s.config.Token)
+	return user.AccessToken, user.RefreshToken, err
 }
 
 func (s *service) GetAccessTokenDuration() int {

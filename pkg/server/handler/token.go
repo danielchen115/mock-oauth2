@@ -21,20 +21,21 @@ func Token(service oauth.Service) http.HandlerFunc {
 				GrantType:   req.URL.Query().Get("grant_type"),
 				Code:        req.URL.Query().Get("code"),
 			}
-			token, err := service.Token(context.TODO(), tokenParams)
+			at, rt, err := service.Tokens(context.TODO(), tokenParams)
 			if err != nil {
 				return err
 			}
 			type Response struct {
 				AccessToken  string `json:"access_token,omitempty"`
+				RefreshToken string `json:"refresh_token,omitempty"`
 				TokenType    string `json:"token_type,omitempty"`
 				ExpiresIn    int    `json:"expires_in,omitempty"`
-				RefreshToken string `json:"refresh_token,omitempty"`
 				Scope        string `json:"scope,omitempty"`
 			}
 			enc := json.NewEncoder(res)
 			return enc.Encode(Response{
-				AccessToken:  token,
+				AccessToken:  at,
+				RefreshToken: rt,
 				TokenType:    "bearer",
 				ExpiresIn:    service.GetAccessTokenDuration(),
 			})

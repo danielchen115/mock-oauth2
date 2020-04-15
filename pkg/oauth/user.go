@@ -78,3 +78,9 @@ func (u *User) AddAccessToken(config TokenConfig) (err error) {
 	return err
 }
 
+func (u *User) AddRefreshToken(config TokenConfig) (err error) {
+	t := NewRefreshToken(config, u)
+	u.RefreshToken, err = t.SignedString([]byte(config.SigningSecret))
+	return err
+}
+
