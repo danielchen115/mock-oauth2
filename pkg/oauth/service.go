@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
 	"strconv"
 	"time"
 )
@@ -24,6 +23,7 @@ type Service interface {
 
 type TokenParam struct {
 	ClientID string
+	ClientSecret string
 	RedirectURI string
 	GrantType string
 	Code string
@@ -75,10 +75,10 @@ func (s *service) SetCurrentUser(ctx context.Context, id primitive.ObjectID) (us
 
 func (s *service) Tokens(ctx context.Context, params TokenParam) (at string, rt string, err error) {
 	if params.GrantType == "authorization_code" {
-		return s.parseAuthorize(params)
+		return s.parseAuthorize(ctx, params)
 	}
 	if params.GrantType == "refresh_token" {
-		return s.parseRefresh(params)
+		return s.parseRefresh(ctx, params)
 	}
 	return "", "", errors.New("unsupported grant type")
 }
@@ -160,10 +160,26 @@ func (s *service) RefreshTokenValid(token string, params TokenParam) error {
 		}
 		expTime = time.Unix(i, 0)
 	} else {
-		return errors.New("expiry claim invalid")
+		return errors.New("invalid expiry claim")
 	}
 	if time.Now().After(expTime) {
 		return errors.New("token expired")
+	}
+	if _, ok := claims["cid"]; !ok {
+		return errors.New("cid claim not found in refresh token")
+	}
+	if cid, ok := claims["cid"].(string); ok {
+		if cid != params.ClientID {
+			return errors.New("invalid client id")
+		}
+	}
+	if _, ok := claims["cse"]; !ok {
+		return errors.New("cse claim not found in refresh token")
+	}
+	if cid, ok := claims["cse"].(string); ok {
+		if cid != params.ClientSecret {
+			return errors.New("invalid client secret")
+		}
 	}
 	return nil
 }

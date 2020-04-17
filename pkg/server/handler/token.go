@@ -17,6 +17,7 @@ func Token(service oauth.Service) http.HandlerFunc {
 			}
 			tokenParams := oauth.TokenParam{
 				ClientID:     req.URL.Query().Get("client_id"),
+				ClientSecret: req.URL.Query().Get("client_secret"),
 				RedirectURI:  req.URL.Query().Get("redirect_uri"),
 				GrantType:    req.URL.Query().Get("grant_type"),
 				Code:         req.URL.Query().Get("code"),
