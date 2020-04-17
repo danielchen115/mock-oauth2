@@ -16,10 +16,11 @@ func Token(service oauth.Service) http.HandlerFunc {
 				return errors.New("method not allowed")
 			}
 			tokenParams := oauth.TokenParam{
-				ClientID:    req.URL.Query().Get("client_id"),
-				RedirectURI: req.URL.Query().Get("redirect_uri"),
-				GrantType:   req.URL.Query().Get("grant_type"),
-				Code:        req.URL.Query().Get("code"),
+				ClientID:     req.URL.Query().Get("client_id"),
+				RedirectURI:  req.URL.Query().Get("redirect_uri"),
+				GrantType:    req.URL.Query().Get("grant_type"),
+				Code:         req.URL.Query().Get("code"),
+				RefreshToken: req.URL.Query().Get("refresh_token"),
 			}
 			at, rt, err := service.Tokens(context.TODO(), tokenParams)
 			if err != nil {

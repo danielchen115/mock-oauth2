@@ -5,7 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
+	"strconv"
+	"time"
 )
 
 type Service interface {
@@ -14,6 +18,8 @@ type Service interface {
 	SetCurrentUser(ctx context.Context, id primitive.ObjectID) (user *User, err error)
 	Tokens(ctx context.Context, params TokenParam) (at string, rt string, err error)
 	GetAccessTokenDuration() int
+	ExtractClaims(tokenString string) (jwt.MapClaims, error)
+	RefreshTokenValid(token string, params TokenParam) error
 }
 
 type TokenParam struct {
@@ -21,6 +27,7 @@ type TokenParam struct {
 	RedirectURI string
 	GrantType string
 	Code string
+	RefreshToken string
 }
 
 type service struct {
@@ -67,9 +74,16 @@ func (s *service) SetCurrentUser(ctx context.Context, id primitive.ObjectID) (us
 }
 
 func (s *service) Tokens(ctx context.Context, params TokenParam) (at string, rt string, err error) {
-	if params.GrantType != "authorization_code" {
-		return "", "", errors.New("unsupported grant type")
+	if params.GrantType == "authorization_code" {
+		return s.parseAuthorize(params)
 	}
+	if params.GrantType == "refresh_token" {
+		return s.parseRefresh(params)
+	}
+	return "", "", errors.New("unsupported grant type")
+}
+
+func (s *service) parseAuthorize(ctx context.Context, params TokenParam) (at string, rt string, err error) {
 	if params.RedirectURI == "" {
 		return "", "", errors.New("redirect URI not found")
 	}
@@ -92,6 +106,64 @@ func (s *service) Tokens(ctx context.Context, params TokenParam) (at string, rt 
 	return user.AccessToken, user.RefreshToken, err
 }
 
+func (s *service) parseRefresh(ctx context.Context, params TokenParam) (at string, rt string, err error) {
+	if params.ClientID != s.config.Token.ClientID {
+		return "", "", errors.New("unknown client ID")
+	}
+	if params.ClientID != s.config.Token.ClientSecret {
+		return "", "", errors.New("invalid client secret")
+	}
+	err = s.RefreshTokenValid(params.RefreshToken, params)
+	if err != nil {
+		return "", "", err
+	}
+	user, err := s.userCollection.Find(ctx, s.currentUserID)
+	if err != nil {
+		return "", "", err
+	}
+	err = user.AddRefreshToken(s.config.Token)
+	return user.AccessToken, user.RefreshToken, err
+}
+
 func (s *service) GetAccessTokenDuration() int {
 	return s.config.Token.AccessTokenDuration
+}
+
+func (s *service) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
+	signingSecret := []byte(s.config.Token.SigningSecret)
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return signingSecret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, nil
+	}
+	return nil, errors.New("invalid JWT token")
+}
+
+func (s *service) RefreshTokenValid(token string, params TokenParam) error {
+	claims, err := s.ExtractClaims(token)
+	if err != nil {
+		return err
+	}
+	if _, ok := claims["exp"]; !ok {
+		return errors.New("exp claim not found in refresh token")
+	}
+	var expTime time.Time
+	expClaim := claims["exp"]
+	if exp, ok := expClaim.(string); ok {
+		i, err := strconv.ParseInt(exp, 10, 64)
+		if err != nil {
+			return err
+		}
+		expTime = time.Unix(i, 0)
+	} else {
+		return errors.New("expiry claim invalid")
+	}
+	if time.Now().After(expTime) {
+		return errors.New("token expired")
+	}
+	return nil
 }
