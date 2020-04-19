@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"strconv"
 	"time"
 )
 
@@ -17,23 +16,29 @@ type Service interface {
 	SetCurrentUser(ctx context.Context, id primitive.ObjectID) (user *User, err error)
 	Tokens(ctx context.Context, params TokenParam) (at string, rt string, err error)
 	GetAccessTokenDuration() int
-	ExtractClaims(tokenString string) (jwt.MapClaims, error)
+	ExtractClaims(tokenString string) (*RefreshClaims, error)
 	RefreshTokenValid(token string, params TokenParam) error
 }
 
 type TokenParam struct {
-	ClientID string
+	ClientID     string
 	ClientSecret string
-	RedirectURI string
-	GrantType string
-	Code string
+	RedirectURI  string
+	GrantType    string
+	Code         string
 	RefreshToken string
 }
 
+type RefreshClaims struct {
+	jwt.StandardClaims
+	ClientID     string `json:"cid,omitempty"`
+	ClientSecret string `json:"cse,omitempty"`
+}
+
 type service struct {
-	config *Config
+	config         *Config
 	userCollection UserCollection
-	currentUserID primitive.ObjectID
+	currentUserID  primitive.ObjectID
 }
 
 func NewService(config *Config, userCollection UserCollection) Service {
@@ -42,7 +47,7 @@ func NewService(config *Config, userCollection UserCollection) Service {
 
 func (s *service) ImportUsers(ctx context.Context, fieldsArr []Fields) error {
 	var users []*User
-	Outer:
+Outer:
 	for _, fields := range fieldsArr {
 		user := User{Fields: make(Fields)}
 		for _, spec := range s.config.Import.Fields {
@@ -110,7 +115,7 @@ func (s *service) parseRefresh(ctx context.Context, params TokenParam) (at strin
 	if params.ClientID != s.config.Token.ClientID {
 		return "", "", errors.New("unknown client ID")
 	}
-	if params.ClientID != s.config.Token.ClientSecret {
+	if params.ClientSecret != s.config.Token.ClientSecret {
 		return "", "", errors.New("invalid client secret")
 	}
 	err = s.RefreshTokenValid(params.RefreshToken, params)
@@ -129,15 +134,16 @@ func (s *service) GetAccessTokenDuration() int {
 	return s.config.Token.AccessTokenDuration
 }
 
-func (s *service) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
+func (s *service) ExtractClaims(tokenString string) (*RefreshClaims, error) {
+	var claims RefreshClaims
 	signingSecret := []byte(s.config.Token.SigningSecret)
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		return signingSecret, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*RefreshClaims); ok && token.Valid {
 		return claims, nil
 	}
 	return nil, errors.New("invalid JWT token")
@@ -148,38 +154,17 @@ func (s *service) RefreshTokenValid(token string, params TokenParam) error {
 	if err != nil {
 		return err
 	}
-	if _, ok := claims["exp"]; !ok {
-		return errors.New("exp claim not found in refresh token")
-	}
 	var expTime time.Time
-	expClaim := claims["exp"]
-	if exp, ok := expClaim.(string); ok {
-		i, err := strconv.ParseInt(exp, 10, 64)
-		if err != nil {
-			return err
-		}
-		expTime = time.Unix(i, 0)
-	} else {
-		return errors.New("invalid expiry claim")
-	}
+	expClaim := claims.ExpiresAt
+	expTime = time.Unix(expClaim, 0)
 	if time.Now().After(expTime) {
 		return errors.New("token expired")
 	}
-	if _, ok := claims["cid"]; !ok {
-		return errors.New("cid claim not found in refresh token")
+	if claims.ClientID != params.ClientID {
+		return errors.New("invalid client id")
 	}
-	if cid, ok := claims["cid"].(string); ok {
-		if cid != params.ClientID {
-			return errors.New("invalid client id")
-		}
-	}
-	if _, ok := claims["cse"]; !ok {
-		return errors.New("cse claim not found in refresh token")
-	}
-	if cid, ok := claims["cse"].(string); ok {
-		if cid != params.ClientSecret {
-			return errors.New("invalid client secret")
-		}
+	if claims.ClientSecret != params.ClientSecret {
+		return errors.New("invalid client secret")
 	}
 	return nil
 }
