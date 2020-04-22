@@ -1,12 +1,13 @@
 version: '3'
 services:
-  web:
+  mock-oauth2:
     build: .
     ports:
      - "8090:8090"
     depends_on:
       - "mongodb"
-
+    volumes:
+      - ./config.yml:/app/mock-oauth2/config.yml
 
   mongodb:
     image: mongo:latest

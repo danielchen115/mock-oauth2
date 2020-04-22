@@ -9,7 +9,7 @@ import (
 
 func main() {
 	err := func() error {
-		config, err := oauth.LoadConfig("config_example.yml", ".")
+		config, err := oauth.LoadConfig("config.yml", ".")
 		if err != nil {
 			return err
 		}

@@ -14,7 +14,7 @@ func main() {
 		if len(os.Args) < 2 {
 			return errors.New("expects 1 argument, got none")
 		}
-		config, err := oauth.LoadConfig("config_example.yml", ".")
+		config, err := oauth.LoadConfig("config.yml", ".")
 		if err != nil {
 			return err
 		}
